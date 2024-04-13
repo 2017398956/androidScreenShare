@@ -2,10 +2,11 @@ package com.wanjian.puppet;
 
 import android.hardware.input.InputManager;
 import android.os.SystemClock;
-import android.support.v4.view.InputDeviceCompat;
 import android.view.InputEvent;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+
+import androidx.core.view.InputDeviceCompat;
 
 import java.lang.reflect.Method;
 
@@ -22,7 +23,7 @@ class TouchUtils {
             sIm = (InputManager) InputManager.class.getDeclaredMethod("getInstance", new Class[0]).invoke(null, new Object[0]);
             MotionEvent.class.getDeclaredMethod("obtain", new Class[0]).setAccessible(true);
             sInjectInputEventMethod =
-                    InputManager.class.getMethod("injectInputEvent", new Class[] {InputEvent.class, Integer.TYPE});
+                    InputManager.class.getMethod("injectInputEvent", new Class[]{InputEvent.class, Integer.TYPE});
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -66,7 +67,7 @@ class TouchUtils {
         MotionEvent event = MotionEvent.obtain(downTime, eventTime, action, x, y, pressure, 1.0f, 0, 1.0f, 1.0f, 0, 0);
         event.setSource(inputSource);
         try {
-            sInjectInputEventMethod.invoke(sIm, new Object[] {event, 0});
+            sInjectInputEventMethod.invoke(sIm, new Object[]{event, 0});
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
@@ -81,7 +82,7 @@ class TouchUtils {
 
     static void injectKeyEvent(KeyEvent event) {
         try {
-            sInjectInputEventMethod.invoke(sIm, new Object[] {event, 0});
+            sInjectInputEventMethod.invoke(sIm, new Object[]{event, 0});
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }

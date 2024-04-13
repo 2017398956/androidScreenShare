@@ -2,21 +2,18 @@ apply plugin: 'com.android.library'
 
 android {
     namespace "com.wanjian.puppet"
-    compileSdkVersion 28
-    buildToolsVersion "28.0.3"
+    compileSdk 34
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 28
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
-
-
     }
 
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation('androidx.core:core:1.12.0')
 }

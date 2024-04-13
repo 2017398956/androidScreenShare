@@ -1,5 +1,13 @@
 package com.wanjian.puppet;
 
+import static com.wanjian.puppet.ScreenUtils.screenshot;
+import static com.wanjian.puppet.TouchUtils.back;
+import static com.wanjian.puppet.TouchUtils.home;
+import static com.wanjian.puppet.TouchUtils.menu;
+import static com.wanjian.puppet.TouchUtils.touchDown;
+import static com.wanjian.puppet.TouchUtils.touchMove;
+import static com.wanjian.puppet.TouchUtils.touchUp;
+
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.net.LocalServerSocket;
@@ -12,124 +20,131 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
-import static com.wanjian.puppet.ScreenUtils.screenshot;
-import static com.wanjian.puppet.TouchUtils.back;
-import static com.wanjian.puppet.TouchUtils.home;
-import static com.wanjian.puppet.TouchUtils.menu;
-import static com.wanjian.puppet.TouchUtils.touchDown;
-import static com.wanjian.puppet.TouchUtils.touchMove;
-import static com.wanjian.puppet.TouchUtils.touchUp;
-
 /**
  * Created by wanjian on 2017/4/4.
  */
 
 public class Main {
 
-
     private static float scale = 1;
 
     public static void main(String[] args) throws Exception {
-
         System.out.println(">>>>>start>>>>>");
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace(System.out));
+        prepareLocalServer();
+    }
 
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace(System.out);
-            }
-        });
-
+    private static void prepareLocalServer() throws IOException {
         LocalServerSocket serverSocket = new LocalServerSocket("puppet-ver1");
-
-
+        LocalSocket socket = null;
         while (true) {
             System.out.println(">>>>> listen");
             try {
-                LocalSocket socket = serverSocket.accept();
+                socket = serverSocket.accept();
                 System.out.println(">>>>> accepted");
                 read(socket);
                 write(socket);
             } catch (Exception e) {
                 e.printStackTrace(System.out);
-                serverSocket = new LocalServerSocket("puppet-ver1");
+                prepareLocalServer();
             }
         }
     }
 
 
-    private static void write(final LocalSocket socket) {
-        new Thread() {
-            @Override
-            public void run() {
-                super.run();
-                try {
-                    final int VERSION = 2;
-                    BufferedOutputStream outputStream = new BufferedOutputStream(socket.getOutputStream());
-                    while (true) {
-                        Bitmap bitmap = screenshot();
-                        bitmap = Bitmap.createScaledBitmap(bitmap, (int) (ScreenUtils.getDisplaySize().x * scale),
-                                (int) (ScreenUtils.getDisplaySize().y * scale), true);
-                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 60, byteArrayOutputStream);
+    private static WriteThread writeThread;
 
-                        outputStream.write(VERSION);
-                        writeInt(outputStream, byteArrayOutputStream.size());
-                        outputStream.write(byteArrayOutputStream.toByteArray());
-                        outputStream.flush();
-                    }
-                } catch (Throwable e) {
-                    throw new RuntimeException(e);
+    public static class WriteThread extends Thread {
+        public LocalSocket socket;
+
+        @Override
+        public void run() {
+            super.run();
+            try {
+                final int VERSION = 2;
+                BufferedOutputStream outputStream = new BufferedOutputStream(socket.getOutputStream());
+                while (true) {
+                    Bitmap bitmap = screenshot();
+                    bitmap = Bitmap.createScaledBitmap(bitmap, (int) (ScreenUtils.getDisplaySize().x * scale),
+                            (int) (ScreenUtils.getDisplaySize().y * scale), true);
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 60, byteArrayOutputStream);
+
+                    outputStream.write(VERSION);
+                    writeInt(outputStream, byteArrayOutputStream.size());
+                    outputStream.write(byteArrayOutputStream.toByteArray());
+                    outputStream.flush();
                 }
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
             }
-        }.start();
+        }
+    }
+
+    private static void write(final LocalSocket socket) {
+        if (writeThread == null) {
+            writeThread = new WriteThread();
+            writeThread.socket = socket;
+            writeThread.start();
+        } else {
+            writeThread.socket = socket;
+        }
+    }
+
+    private static ReadThread readThread;
+
+    public static class ReadThread extends Thread {
+
+        private String DOWN = "DOWN";
+        private String MOVE = "MOVE";
+        private String UP = "UP";
+        private String MENU = "MENU";
+        private String HOME = "HOME";
+        private String BACK = "BACK";
+        private String DEGREE = "DEGREE";
+        public LocalSocket socket;
+
+        @Override
+        public void run() {
+            super.run();
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                while (true) {
+                    String line = reader.readLine();
+                    if (line == null) {
+                        System.out.println("socket closed....");
+                        return;
+                    }
+                    if (line.startsWith(DOWN)) {
+                        handlerDown(line.substring(DOWN.length()));
+                    } else if (line.startsWith(MOVE)) {
+                        handlerMove(line.substring(MOVE.length()));
+                    } else if (line.startsWith(UP)) {
+                        handlerUp(line.substring(UP.length()));
+                    } else if (line.startsWith(MENU)) {
+                        menu();
+                    } else if (line.startsWith(HOME)) {
+                        home();
+                    } else if (line.startsWith(BACK)) {
+                        back();
+                    } else if (line.startsWith(DEGREE)) {
+                        scale = Float.parseFloat(line.substring(DEGREE.length())) / 100;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace(System.out);
+            }
+        }
     }
 
     private static void read(final LocalSocket socket) {
-
-        new Thread() {
-            private final String DOWN = "DOWN";
-            private final String MOVE = "MOVE";
-            private final String UP = "UP";
-
-            private final String MENU = "MENU";
-            private final String HOME = "HOME";
-            private final String BACK = "BACK";
-
-            private final String DEGREE = "DEGREE";
-
-            @Override
-            public void run() {
-                super.run();
-                try {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    while (true) {
-                        String line = reader.readLine();
-                        if (line == null) {
-                            System.out.println("socket closed....");
-                            return;
-                        }
-                        if (line.startsWith(DOWN)) {
-                            handlerDown(line.substring(DOWN.length()));
-                        } else if (line.startsWith(MOVE)) {
-                            handlerMove(line.substring(MOVE.length()));
-                        } else if (line.startsWith(UP)) {
-                            handlerUp(line.substring(UP.length()));
-                        } else if (line.startsWith(MENU)) {
-                            menu();
-                        } else if (line.startsWith(HOME)) {
-                            home();
-                        } else if (line.startsWith(BACK)) {
-                            back();
-                        } else if (line.startsWith(DEGREE)) {
-                            scale = Float.parseFloat(line.substring(DEGREE.length())) / 100;
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace(System.out);
-                }
-            }
-        }.start();
+        if (readThread == null) {
+            readThread = new ReadThread();
+            readThread.socket = socket;
+            readThread.start();
+        } else {
+            readThread.socket = socket;
+        }
     }
 
     private static void handlerUp(String line) {

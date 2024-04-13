@@ -51,7 +51,6 @@ public class Main {
         }
     }
 
-
     private static WriteThread writeThread;
 
     public static class WriteThread extends Thread {
@@ -191,6 +190,5 @@ public class Main {
         outputStream.write(v >> 8);
         outputStream.write(v);
     }
-
 
 }

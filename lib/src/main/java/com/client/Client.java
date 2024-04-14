@@ -26,7 +26,6 @@ import javax.swing.event.ChangeListener;
 
 public class Client extends JFrame {
     JLabel label;
-    boolean isMove = false;
     JLabel tips;
 
     public Client() throws IOException {
@@ -96,15 +95,20 @@ public class Client extends JFrame {
             @Override
             public void mouseClicked(MouseEvent mouseEvent) {
                 super.mouseClicked(mouseEvent);
-                int x = mouseEvent.getX();
-                int y = mouseEvent.getY();
+                System.out.println("mouseClicked");
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                super.mousePressed(e);
+                System.out.println("mousePressed");
+                int x = e.getX();
+                int y = e.getY();
                 try {
                     writer.write("DOWN" + (x * 1.0f / label.getWidth()) + "#" + (y * 1.0f / label.getHeight()));
                     writer.newLine();
-                    writer.write("UP" + (x * 1.0f / label.getWidth()) + "#" + (y * 1.0f / label.getHeight()));
-                    writer.newLine();
                     writer.flush();
-                } catch (Exception e) {
+                } catch (Exception exception) {
 
                 }
             }
@@ -112,41 +116,33 @@ public class Client extends JFrame {
             @Override
             public void mouseReleased(MouseEvent mouseEvent) {
                 super.mouseReleased(mouseEvent);
+                System.out.println("mouseReleased");
                 try {
                     int x = mouseEvent.getX();
                     int y = mouseEvent.getY();
                     writer.write("UP" + (x * 1.0f / label.getWidth()) + "#" + (y * 1.0f / label.getHeight()));
                     writer.newLine();
                     writer.flush();
-                    isMove = false;
                 } catch (Exception e) {
 
                 }
             }
+
         });
         label.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent mouseEvent) {
                 super.mouseDragged(mouseEvent);
+                System.out.println("mouseDragged");
                 try {
                     int x = mouseEvent.getX();
                     int y = mouseEvent.getY();
-                    if (!isMove) {
-                        isMove = true;
-
-                        writer.write("DOWN" + (x * 1.0f / label.getWidth()) + "#" + (y * 1.0f / label.getHeight()));
-                    } else {
-
-                        writer.write("MOVE" + (x * 1.0f / label.getWidth()) + "#" + (y * 1.0f / label.getHeight()));
-                    }
+                    writer.write("MOVE" + (x * 1.0f / label.getWidth()) + "#" + (y * 1.0f / label.getHeight()));
                     writer.newLine();
                     writer.flush();
                 } catch (Exception e) {
-
                 }
             }
-
-
         });
 
 

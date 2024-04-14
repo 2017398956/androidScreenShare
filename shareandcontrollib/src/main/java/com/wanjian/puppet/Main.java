@@ -1,6 +1,5 @@
 package com.wanjian.puppet;
 
-import static com.wanjian.puppet.ScreenUtils.screenshot;
 import static com.wanjian.puppet.TouchUtils.back;
 import static com.wanjian.puppet.TouchUtils.home;
 import static com.wanjian.puppet.TouchUtils.menu;
@@ -63,7 +62,7 @@ public class Main {
                 final int VERSION = 2;
                 BufferedOutputStream outputStream = new BufferedOutputStream(socket.getOutputStream());
                 while (true) {
-                    Bitmap bitmap = screenshot();
+                    Bitmap bitmap = ScreenUtils.screenshot();
                     bitmap = Bitmap.createScaledBitmap(bitmap, (int) (ScreenUtils.getDisplaySize().x * scale),
                             (int) (ScreenUtils.getDisplaySize().y * scale), true);
                     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -74,8 +73,14 @@ public class Main {
                     outputStream.write(byteArrayOutputStream.toByteArray());
                     outputStream.flush();
                 }
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
+            } catch (Exception e) {
+                e.printStackTrace(System.out);
+                writeThread = null;
+                readThread = null;
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                }
             }
         }
     }
@@ -132,6 +137,12 @@ public class Main {
                 }
             } catch (Exception e) {
                 e.printStackTrace(System.out);
+                readThread = null;
+                writeThread = null;
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                }
             }
         }
     }
